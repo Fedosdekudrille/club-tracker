@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+    tracker:
+        image: file-club-tracker
+        container_name: tracker
+        build: .
+        command: ["go", "run", "cmd/tracker/main.go", "assets/test_file.txt"]
+    bigTracker:
+        image: big-club-tracker
+        container_name: bigTracker
+        build: .
+        command: ["go", "run", "cmd/bigFile/main.go"]
+    tests:
+        image: test-club-tracker
+        container_name: tracker-tests
+        build: .
+        command: ["go", "test", "-v", "club-tracker/internal/data", "club-tracker/internal/club"]
