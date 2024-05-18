@@ -14,4 +14,4 @@ services:
         image: test-club-tracker
         container_name: tracker-tests
         build: .
-        command: ["go", "test", "-v", "club-tracker/internal/data", "club-tracker/internal/club"]
+        command: ["go", "test", "-v", "github.com/Fedosdekudrille/club-tracker/internal/data", "github.com/Fedosdekudrille/club-tracker/internal/club"]

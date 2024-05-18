@@ -60,12 +60,10 @@ func TestMustQueueEvents(t *testing.T) {
 		MustQueueEvents(bufio.NewScanner(strings.NewReader("08:00 1 Dan\n07:00 1 Man")), manager)
 	})
 	t.Run("ExitTime", func(t *testing.T) {
-		defer func() {
-			if err := recover(); err == nil {
-				t.Error("Must panic")
-			}
-		}()
 		manager := MustParseClubManager(bufio.NewScanner(strings.NewReader("3\n09:00 19:00\n10\n")))
-		MustQueueEvents(bufio.NewScanner(strings.NewReader("20:00 1 Dan")), manager)
+		queue := MustQueueEvents(bufio.NewScanner(strings.NewReader("20:00 1 Dan")), manager)
+		if queue.Pop() != "19:00" {
+			t.Error("Doesn't return exit time")
+		}
 	})
 }

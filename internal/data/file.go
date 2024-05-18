@@ -66,10 +66,12 @@ func MustQueueEvents(scanner *bufio.Scanner, manager *club.Manager) queue.Queue[
 	for scanner.Scan() {
 		event := scanner.Text()
 		code, time, name, table := parseEvent(event, prevTime, nameRegex)
+		prevTime = time
 		if code == ClientSatAtTable && (table < 1 || table > manager.GetTableNum()) {
 			panic(event)
 		}
-		if shift.Compare(time, manager.GetEndTime()) == 0 {
+		if !shiftEnded && shift.Compare(time, manager.GetEndTime()) > 0 {
+			outputQueue.Push(manager.GetEndTime().String())
 			endShift(manager, &outputQueue)
 			shiftEnded = true
 		}
