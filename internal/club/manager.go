@@ -1,8 +1,8 @@
 package club
 
 import (
-	"club-tracker/internal/shift"
-	"club-tracker/pkg/queue"
+	"github.com/Fedosdekudrille/club-tracker/internal/shift"
+	"github.com/Fedosdekudrille/club-tracker/pkg/queue"
 	"slices"
 )
 
@@ -43,7 +43,7 @@ func NewManager(startTime, endTime shift.Time, costPerHour int, tableNum int) *M
 }
 
 func (m *Manager) AddClient(name string, currentTime shift.Time) Response {
-	if currentTime.Compare(m.startTime) < 0 || currentTime.Compare(m.endTime) > 0 {
+	if shift.Compare(currentTime, m.startTime) < 0 || shift.Compare(currentTime, m.endTime) > 0 {
 		return responseErr("NotOpenYet", currentTime)
 	}
 	if _, ok := m.clients[name]; ok {
@@ -111,6 +111,8 @@ func (m *Manager) RemoveAllClientsSorted() (sortedClients []Response) {
 		}
 		return 0
 	})
+	m.clients = make(map[string]*clientInfo)
+	m.waitingClients = queue.NewQueue[string]()
 	return sortedClients
 }
 

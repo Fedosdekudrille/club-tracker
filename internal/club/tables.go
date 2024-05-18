@@ -1,8 +1,8 @@
 package club
 
 import (
-	"club-tracker/internal/shift"
 	"fmt"
+	"github.com/Fedosdekudrille/club-tracker/internal/shift"
 )
 
 type table struct {
@@ -46,6 +46,10 @@ func (m *Manager) leaveTable(client *clientInfo, currentTime shift.Time) {
 	m.freeTables++
 	client.table = -1
 	client.startTime = shift.Time{}
+}
+
+func (m *Manager) GetTableNum() int {
+	return len(m.tables)
 }
 
 func (m *Manager) GetAllTables() []table {

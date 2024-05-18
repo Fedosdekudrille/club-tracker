@@ -2,9 +2,9 @@ package data
 
 import (
 	"bufio"
-	"club-tracker/internal/club"
-	"club-tracker/internal/shift"
-	"club-tracker/pkg/queue"
+	"github.com/Fedosdekudrille/club-tracker/internal/club"
+	"github.com/Fedosdekudrille/club-tracker/internal/shift"
+	"github.com/Fedosdekudrille/club-tracker/pkg/queue"
 	"regexp"
 	"strconv"
 	"strings"
@@ -19,15 +19,17 @@ const (
 
 const namePattern = "^[A-Za-z0-9_]+$"
 
-// MustParseClubManager parses all managment data from scanner
+// MustParseClubManager parses all management data from scanner
 func MustParseClubManager(scanner *bufio.Scanner) *club.Manager {
 	scanner.Scan()
 	tableNumTxt := scanner.Text()
 	tableNum, err := strconv.Atoi(tableNumTxt)
-	if err != nil {
+	if err != nil || tableNum < 0 {
 		panic(tableNumTxt)
 	}
 
+	zeroTime := shift.NewTime(0, 0)
+	maxTime := shift.NewTime(23, 59)
 	scanner.Scan()
 	strTimes := scanner.Text()
 	openCloseTimes := strings.Split(strTimes, " ")
@@ -41,14 +43,14 @@ func MustParseClubManager(scanner *bufio.Scanner) *club.Manager {
 			panic(strTimes)
 		}
 	}
-	if shiftTime[0].Compare(shiftTime[1]) > 0 {
+	if shift.Compare(shiftTime[0], shiftTime[1]) > 0 || shift.Compare(shiftTime[0], zeroTime) == -1 || shift.Compare(shiftTime[1], maxTime) == 1 {
 		panic(strTimes)
 	}
 
 	scanner.Scan()
 	costPerHourTxt := scanner.Text()
 	costPerHour, err := strconv.Atoi(costPerHourTxt)
-	if err != nil {
+	if err != nil || costPerHour < 0 {
 		panic(costPerHourTxt)
 	}
 
@@ -59,69 +61,79 @@ func MustParseClubManager(scanner *bufio.Scanner) *club.Manager {
 func MustQueueEvents(scanner *bufio.Scanner, manager *club.Manager) queue.Queue[string] {
 	outputQueue := queue.NewQueue[string]()
 	prevTime := shift.NewTime(0, 0)
+	nameRegex := regexp.MustCompile(namePattern)
+	shiftEnded := false
 	for scanner.Scan() {
 		event := scanner.Text()
-		eventParts := strings.Split(event, " ")
-		if len(eventParts) < 3 {
+		code, time, name, table := parseEvent(event, prevTime, nameRegex)
+		if code == ClientSatAtTable && (table < 1 || table > manager.GetTableNum()) {
 			panic(event)
 		}
+		if shift.Compare(time, manager.GetEndTime()) == 0 {
+			endShift(manager, &outputQueue)
+			shiftEnded = true
+		}
+		outputQueue.Push(event)
+		var answer club.Response
+		switch code {
+		case ClientCame:
+			answer = manager.AddClient(name, time)
+		case ClientSatAtTable:
+			answer = manager.SetClientTable(name, table, time)
+		case ClientWaits:
+			answer = manager.WaitForTable(name, time)
+		case ClientLeft:
+			answer = manager.RemoveClient(name, time)
+		}
+		if answer.Code != 0 {
+			outputQueue.Push(answer.String())
+		}
+	}
+	if !shiftEnded {
+		endShift(manager, &outputQueue)
+	}
+	return outputQueue
+}
+func parseEvent(event string, prevTime shift.Time, nameRegexp *regexp.Regexp) (code int, time shift.Time, name string, table int) {
+	eventParts := strings.Split(event, " ")
+	if len(eventParts) < 3 {
+		panic(event)
+	}
 
-		time, err := shift.Parse(eventParts[0])
-		if err != nil || time.Compare(prevTime) < 0 {
-			panic(event)
-		}
-		prevTime = time
-		if time.Compare(manager.GetEndTime()) > 0 {
-			panic(event)
-		}
+	time, err := shift.Parse(eventParts[0])
+	if err != nil || shift.Compare(time, prevTime) < 0 {
+		panic(event)
+	}
+	prevTime = time
 
-		code, err := strconv.Atoi(eventParts[1])
+	code, err = strconv.Atoi(eventParts[1])
+	if err != nil {
+		panic(event)
+	}
+
+	name = eventParts[2]
+	if !nameRegexp.MatchString(name) {
+		panic(event)
+	}
+
+	if code == ClientSatAtTable {
+		if len(eventParts) < 4 {
+			panic(event)
+		}
+		table, err = strconv.Atoi(eventParts[3])
 		if err != nil {
 			panic(event)
 		}
-
-		nameRegex := regexp.MustCompile(namePattern)
-		if !nameRegex.MatchString(eventParts[2]) {
-			panic(event)
-		}
-
-		switch code {
-		case ClientCame:
-			outputQueue.Push(event)
-			answer := manager.AddClient(eventParts[2], time)
-			if answer.Code != 0 {
-				outputQueue.Push(answer.String())
-			}
-		case ClientSatAtTable:
-			if len(eventParts) < 4 {
-				panic(event)
-			}
-			table, err := strconv.Atoi(eventParts[3])
-			if err != nil {
-				panic(event)
-			}
-			outputQueue.Push(event)
-			answer := manager.SetClientTable(eventParts[2], table, time)
-			if answer.Code != 0 {
-				outputQueue.Push(answer.String())
-			}
-		case ClientWaits:
-			outputQueue.Push(event)
-			answer := manager.WaitForTable(eventParts[2], time)
-			if answer.Code != 0 {
-				outputQueue.Push(answer.String())
-			}
-		case ClientLeft:
-			outputQueue.Push(event)
-			answer := manager.RemoveClient(eventParts[2], time)
-			if answer.Code != 0 {
-				outputQueue.Push(answer.String())
-			}
-		}
+	} else {
+		table = -1
 	}
+	return code, time, name, table
+
+}
+
+func endShift(manager *club.Manager, outputQueue *queue.Queue[string]) {
 	sortedLeaveEvents := manager.RemoveAllClientsSorted()
 	for _, leaveEvent := range sortedLeaveEvents {
 		outputQueue.Push(leaveEvent.String())
 	}
-	return outputQueue
 }

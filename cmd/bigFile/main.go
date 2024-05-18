@@ -2,9 +2,9 @@ package main
 
 import (
 	"bufio"
-	"club-tracker/internal/data"
-	"club-tracker/internal/shift"
 	"fmt"
+	"github.com/Fedosdekudrille/club-tracker/internal/data"
+	"github.com/Fedosdekudrille/club-tracker/internal/shift"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -42,15 +42,15 @@ func main() {
 
 // generates 24 * 60 = 1440 lines of various data
 func generateBigData() string {
-	time := shift.NewTime(0, 0)
+	zeroTime := shift.NewTime(0, 0)
 	builder := strings.Builder{}
 	const tableNum = 5
 	builder.WriteString(strconv.Itoa(tableNum) + "\n")
-	builder.WriteString("00:00 24:00\n")
+	builder.WriteString("00:00 23:00\n")
 	builder.WriteString("15\n")
 
-	for time.Hour < 24 {
-		builder.WriteString(time.String() + " ")
+	for !(zeroTime.Hour == 23 && zeroTime.Minute == 59) {
+		builder.WriteString(zeroTime.String() + " ")
 		code := rand.Intn(4) + 1
 		builder.WriteString(strconv.Itoa(code) + " ")
 		for range 1 {
@@ -60,7 +60,7 @@ func generateBigData() string {
 			builder.WriteString(" " + strconv.Itoa(rand.Intn(tableNum)+1))
 		}
 		builder.WriteString("\n")
-		time = time.Add(shift.Time{Minute: 1})
+		zeroTime = zeroTime.Add(shift.Time{Minute: 1})
 	}
 	return builder.String()
 }

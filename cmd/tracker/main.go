@@ -2,8 +2,8 @@ package main
 
 import (
 	"bufio"
-	"club-tracker/internal/data"
 	"fmt"
+	"github.com/Fedosdekudrille/club-tracker/internal/data"
 	"os"
 )
 

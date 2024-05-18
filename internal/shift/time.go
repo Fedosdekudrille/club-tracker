@@ -33,13 +33,13 @@ func Parse(stringTime string) (Time, error) {
 	return NewTime(hour, minute), nil
 }
 
-// Compare returns 1 if other shift is lower, 0 if equal and -1 if higher
-func (t Time) Compare(other Time) int {
-	hourRes := compareInts(t.Hour, other.Hour)
+// Compare returns 1 if a > b, -1 if a < b, 0 if a == b
+func Compare(a, b Time) int {
+	hourRes := compareInts(a.Hour, b.Hour)
 	if hourRes != 0 {
 		return hourRes
 	}
-	return compareInts(t.Minute, other.Minute)
+	return compareInts(a.Minute, b.Minute)
 }
 
 func compareInts(a, b int) int {

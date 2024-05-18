@@ -1,7 +1,7 @@
 package club
 
 import (
-	"club-tracker/internal/shift"
+	"github.com/Fedosdekudrille/club-tracker/internal/shift"
 	"strconv"
 )
 
